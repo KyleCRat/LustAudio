@@ -144,6 +144,7 @@ end
 
 function addon:OnEnable()
     self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+    self:RegisterEvent("PLAYER_REGEN_ENABLED")
 end
 
 function addon:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellID)
@@ -160,5 +161,17 @@ function addon:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellID)
         return
     end
 
-    PlaySoundFile(path, self.db.profile.channel)
+    local _, handle = PlaySoundFile(
+        path, self.db.profile.channel
+    )
+    self.soundHandle = handle
+end
+
+function addon:PLAYER_REGEN_ENABLED()
+    if not self.soundHandle then
+        return
+    end
+
+    StopSound(self.soundHandle)
+    self.soundHandle = nil
 end
