@@ -11,12 +11,14 @@ end
 
 RegisterSound("PedroLust", "PedroLust.mp3")
 
-local BLOODLUST_SPELLS = {
-    [2825] = true,   -- Bloodlust (Shaman)
-    [32182] = true,  -- Heroism (Shaman)
-    [80353] = true,  -- Time Warp (Mage)
-    [264667] = true, -- Primal Rage (Hunter Pet)
-    [390386] = true, -- Fury of the Aspects (Evoker)
+local SATED_DEBUFFS = {
+    [57723] = true,  -- Exhaustion
+    [57724] = true,  -- Sated
+    [80354] = true,  -- Temporal Displacement
+    [95809] = true,  -- Insanity (Hunter Pet)
+    [160455] = true, -- Fatigued (Hunter Pet)
+    [264689] = true, -- Fatigued (Hunter Pet)
+    [390435] = true, -- Exhaustion
 }
 
 local function GetLustSounds()
@@ -142,17 +144,45 @@ function addon:SlashCommand()
     Settings.OpenToCategory(self.categoryID)
 end
 
-function addon:OnEnable()
-    self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
-    self:RegisterEvent("PLAYER_REGEN_ENABLED")
+local function HasSatedDebuff()
+    for spellID in pairs(SATED_DEBUFFS) do
+        local aura = C_UnitAuras.GetPlayerAuraBySpellID(spellID)
+        if aura then
+            return true
+        end
+    end
+
+    return false
 end
 
-function addon:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellID)
+function addon:OnEnable()
+    self:RegisterEvent("UNIT_AURA")
+end
+
+function addon:UNIT_AURA(_, unit)
     if unit ~= "player" then
         return
     end
 
-    if not BLOODLUST_SPELLS[spellID] then
+    local hasSated = HasSatedDebuff()
+
+    if self.lustPlaying then
+        if not hasSated then
+            self.lustPlaying = false
+        end
+
+        return
+    end
+
+    if not hasSated then
+        return
+    end
+
+    self:PlayLustSound()
+end
+
+function addon:PlayLustSound()
+    if self.lustPlaying then
         return
     end
 
@@ -165,13 +195,5 @@ function addon:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellID)
         path, self.db.profile.channel
     )
     self.soundHandle = handle
-end
-
-function addon:PLAYER_REGEN_ENABLED()
-    if not self.soundHandle then
-        return
-    end
-
-    StopSound(self.soundHandle)
-    self.soundHandle = nil
+    self.lustPlaying = true
 end
