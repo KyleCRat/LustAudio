@@ -156,7 +156,9 @@ local function HasSatedDebuff()
 end
 
 function addon:OnEnable()
+    self.isSated = true
     self:RegisterEvent("UNIT_AURA")
+    self:RegisterEvent("PLAYER_REGEN_ENABLED")
 end
 
 function addon:UNIT_AURA(_, unit)
@@ -164,25 +166,10 @@ function addon:UNIT_AURA(_, unit)
         return
     end
 
-    local hasSated = HasSatedDebuff()
+    local wasSated = self.isSated
+    self.isSated = HasSatedDebuff()
 
-    if self.lustPlaying then
-        if not hasSated then
-            self.lustPlaying = false
-        end
-
-        return
-    end
-
-    if not hasSated then
-        return
-    end
-
-    self:PlayLustSound()
-end
-
-function addon:PlayLustSound()
-    if self.lustPlaying then
+    if wasSated or not self.isSated then
         return
     end
 
@@ -195,5 +182,13 @@ function addon:PlayLustSound()
         path, self.db.profile.channel
     )
     self.soundHandle = handle
-    self.lustPlaying = true
+end
+
+function addon:PLAYER_REGEN_ENABLED()
+    if not self.soundHandle then
+        return
+    end
+
+    StopSound(self.soundHandle)
+    self.soundHandle = nil
 end
