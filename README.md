@@ -1,3 +1,12 @@
+## How It Works
+
+LustAudio plays a sound when a bloodlust effect is activated. It detects lust
+by watching for sated/exhaustion debuffs (Sated, Exhaustion, Temporal
+Displacement, Insanity, Fatigued) to appear on your character. Audio plays
+on the not-sated to sated transition and stops when combat ends.
+
+Configure the sound and audio channel via `/la` or the addon settings panel.
+
 ## Adding Custom Audio
 
 LustAudio uses a custom SharedMedia type called `lustaudio` so the sound picker 
