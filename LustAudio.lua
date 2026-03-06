@@ -158,7 +158,7 @@ end
 function addon:OnEnable()
     self.isSated = true
     self:RegisterEvent("UNIT_AURA")
-    self:RegisterEvent("PLAYER_REGEN_ENABLED")
+    self:RegisterEvent("PLAYER_DEAD")
 end
 
 function addon:UNIT_AURA(_, unit)
@@ -184,7 +184,7 @@ function addon:UNIT_AURA(_, unit)
     self.soundHandle = handle
 end
 
-function addon:PLAYER_REGEN_ENABLED()
+function addon:PLAYER_DEAD()
     if not self.soundHandle then
         return
     end
