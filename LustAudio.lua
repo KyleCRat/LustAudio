@@ -158,7 +158,12 @@ end
 function addon:OnEnable()
     self.isSated = true
     self:RegisterEvent("UNIT_AURA")
+    self:RegisterEvent("PLAYER_ENTERING_WORLD")
     self:RegisterEvent("PLAYER_DEAD")
+end
+
+function addon:PLAYER_ENTERING_WORLD()
+    self.isSated = true
 end
 
 function addon:UNIT_AURA(_, unit)
