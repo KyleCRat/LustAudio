@@ -147,7 +147,7 @@ end
 local function HasSatedDebuff()
     for spellID in pairs(SATED_DEBUFFS) do
         local aura = C_UnitAuras.GetPlayerAuraBySpellID(spellID)
-        if aura then
+        if not issecretvalue(aura) and aura then
             return true
         end
     end
@@ -167,7 +167,7 @@ function addon:PLAYER_ENTERING_WORLD()
 end
 
 function addon:UNIT_AURA(_, unit)
-    if unit ~= "player" then
+    if issecretvalue(unit) or unit ~= "player" then
         return
     end
 
