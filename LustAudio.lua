@@ -11,14 +11,24 @@ end
 
 RegisterSound("PedroLust", "PedroLust.mp3")
 
-local SATED_DEBUFFS = {
-    [57723] = true,  -- Exhaustion
-    [57724] = true,  -- Sated
-    [80354] = true,  -- Temporal Displacement
-    [95809] = true,  -- Insanity (Hunter Pet)
-    [160455] = true, -- Fatigued (Hunter Pet)
-    [264689] = true, -- Fatigued (Hunter Pet)
-    [390435] = true, -- Exhaustion
+-- Track the short-lived haste buffs themselves, not the long-lived
+-- exhaustion effects. This prevents zoning with an existing lockout from
+-- being treated as a new Bloodlust application.
+local BLOODLUST_BUFFS = {
+    2825,   -- Bloodlust
+    32182,  -- Heroism
+    80353,  -- Time Warp
+    90355,  -- Ancient Hysteria
+    160452, -- Netherwinds
+    264667, -- Primal Rage
+    390386, -- Fury of the Aspects
+}
+
+local AURA_SOUND_RETRY_EVENTS = {
+    "PLAYER_REGEN_ENABLED",
+    "ENCOUNTER_END",
+    "PLAYER_ENTERING_WORLD",
+    "ZONE_CHANGED_NEW_AREA",
 }
 
 local function GetLustSounds()
@@ -55,6 +65,21 @@ local defaults = {
     },
 }
 
+local function CanChangeAuraSoundRegistrations()
+    return not InCombatLockdown()
+        and not C_Secrets.ShouldAurasBeSecret()
+end
+
+local function RemoveAuraSoundRegistrations(registrationIDs)
+    if not registrationIDs then
+        return
+    end
+
+    for _, registrationID in ipairs(registrationIDs) do
+        C_UnitAuras.RemoveAuraSound(registrationID)
+    end
+end
+
 local options = {
     name = "LustAudio",
     type = "group",
@@ -64,13 +89,14 @@ local options = {
             type = "select",
             width = "double",
             name = "Sound",
-            desc = "Sound to play when bloodlust is cast.",
+            desc = "Sound to play when a Bloodlust buff is applied.",
             values = GetLustSounds,
             get = function()
                 return addon.db.profile.sound
             end,
             set = function(_, value)
                 addon.db.profile.sound = value
+                addon:RefreshAuraSounds()
             end,
         },
         preview = {
@@ -80,14 +106,7 @@ local options = {
             name = "Preview",
             desc = "Play the selected sound on the selected audio channel.",
             func = function()
-                local sound = addon.db.profile.sound
-                local path = LSM:Fetch(LUST_AUDIO, sound)
-                if path then
-                    PlaySoundFile(
-                        path,
-                        addon.db.profile.channel
-                    )
-                end
+                addon:PlaySelectedSound()
             end,
         },
         channel = {
@@ -103,6 +122,7 @@ local options = {
             end,
             set = function(_, value)
                 addon.db.profile.channel = value
+                addon:RefreshAuraSounds()
             end,
         },
         soundHelp = {
@@ -144,56 +164,90 @@ function addon:SlashCommand()
     Settings.OpenToCategory(self.categoryID)
 end
 
-local function HasSatedDebuff()
-    for spellID in pairs(SATED_DEBUFFS) do
-        local aura = C_UnitAuras.GetPlayerAuraBySpellID(spellID)
-        if not issecretvalue(aura) and aura then
-            return true
-        end
-    end
-
-    return false
-end
-
-function addon:OnEnable()
-    self.isSated = true
-    self:RegisterEvent("UNIT_AURA")
-    self:RegisterEvent("PLAYER_ENTERING_WORLD")
-    self:RegisterEvent("PLAYER_DEAD")
-end
-
-function addon:PLAYER_ENTERING_WORLD()
-    self.isSated = true
-end
-
-function addon:UNIT_AURA(_, unit)
-    if issecretvalue(unit) or unit ~= "player" then
-        return
-    end
-
-    local wasSated = self.isSated
-    self.isSated = HasSatedDebuff()
-
-    if wasSated or not self.isSated then
-        return
-    end
-
+function addon:PlaySelectedSound()
     local path = LSM:Fetch(LUST_AUDIO, self.db.profile.sound)
     if not path then
         return
     end
 
-    local _, handle = PlaySoundFile(
-        path, self.db.profile.channel
-    )
-    self.soundHandle = handle
+    PlaySoundFile(path, self.db.profile.channel)
 end
 
-function addon:PLAYER_DEAD()
-    if not self.soundHandle then
-        return
+function addon:RegisterAuraSoundRetryEvents()
+    for _, event in ipairs(AURA_SOUND_RETRY_EVENTS) do
+        self:RegisterEvent(event, "RetryAuraSoundRefresh")
+    end
+end
+
+function addon:UnregisterAuraSoundRetryEvents()
+    for _, event in ipairs(AURA_SOUND_RETRY_EVENTS) do
+        self:UnregisterEvent(event)
+    end
+end
+
+function addon:ClearAuraSounds()
+    local registrationIDs = self.auraSoundRegistrationIDs
+    self.auraSoundRegistrationIDs = nil
+    RemoveAuraSoundRegistrations(registrationIDs)
+end
+
+function addon:TryRegisterAuraSounds()
+    local path = LSM:Fetch(LUST_AUDIO, self.db.profile.sound)
+    if not path then
+        self:ClearAuraSounds()
+        return true
     end
 
-    StopSound(self.soundHandle)
-    self.soundHandle = nil
+    local registrationIDs = {}
+    for _, spellID in ipairs(BLOODLUST_BUFFS) do
+        local registrationID = C_UnitAuras.AddAuraSound(
+            Enum.UnitAuraSoundTrigger.Added,
+            {
+                unitToken = "player",
+                spellID = spellID,
+                soundFileName = path,
+                outputChannel = self.db.profile.channel,
+            }
+        )
+
+        if not registrationID then
+            RemoveAuraSoundRegistrations(registrationIDs)
+            return false
+        end
+
+        registrationIDs[#registrationIDs + 1] = registrationID
+    end
+
+    local previousRegistrationIDs = self.auraSoundRegistrationIDs
+    self.auraSoundRegistrationIDs = registrationIDs
+    RemoveAuraSoundRegistrations(previousRegistrationIDs)
+    return true
+end
+
+function addon:RefreshAuraSounds()
+    if not CanChangeAuraSoundRegistrations() then
+        self:RegisterAuraSoundRetryEvents()
+        return false
+    end
+
+    if not self:TryRegisterAuraSounds() then
+        self:RegisterAuraSoundRetryEvents()
+        return false
+    end
+
+    self:UnregisterAuraSoundRetryEvents()
+    return true
+end
+
+function addon:RetryAuraSoundRefresh()
+    self:RefreshAuraSounds()
+end
+
+function addon:OnEnable()
+    self:RefreshAuraSounds()
+end
+
+function addon:OnDisable()
+    self:UnregisterAllEvents()
+    self:ClearAuraSounds()
 end

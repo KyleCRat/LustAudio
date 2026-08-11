@@ -1,8 +1,8 @@
-## Interface: 120007, 120100
+## Interface: 120100
 ## Title: LustAudio
-## Notes: Plays audio when a bloodlust effect is cast
+## Notes: Plays audio when a bloodlust buff is applied
 ## Author: Yvairel
-## Version: 12.1.0-8
+## Version: 12.1.0-9
 ## SavedVariables: LustAudioDB
 ## OptionalDeps: Ace3, LibSharedMedia-3.0
 ## X-Embeds: Ace3, LibSharedMedia-3.0

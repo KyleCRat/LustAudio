@@ -1,35 +1,39 @@
 ## How It Works
 
 LustAudio plays a sound when a bloodlust effect is activated. It detects lust
-by watching for sated/exhaustion debuffs (Sated, Exhaustion, Temporal
-Displacement, Insanity, Fatigued) to appear on your character. Audio plays
-on the not-sated to sated transition and stops if the player dies.
+with Blizzard's native WoW 12.1 aura-sound support. It watches for the actual
+Bloodlust, Heroism, Time Warp, Ancient Hysteria, Netherwinds, Primal Rage, and
+Fury of the Aspects buffs to be added to your character. It does not watch the
+long-lived sated or exhaustion debuffs, so zoning with an existing lockout does
+not trigger the audio.
 
 Configure the sound and audio channel via `/la` or the addon settings panel.
 
 ## Adding Custom Audio
 
-LustAudio uses a custom SharedMedia type called `lustaudio` so the sound picker 
-only shows sounds meant for lust, rather than every sound registered with 
+LustAudio uses a custom SharedMedia type called `lustaudio` so the sound picker
+only shows sounds meant for lust, rather than every sound registered with
 SharedMedia.
 
 You can add your own audio files by creating a small addon called
-`SharedMedia_MyMedia`. More detailed instructions can be found within the 
+`SharedMedia_MyMedia`. More detailed instructions can be found within the
 SharedMedia addon.
 
 ### Setup
 
 1. Follow the instructions within the SharedMedia addon to create your
-   `SharedMedia_MyMedia` addon. 
+   `SharedMedia_MyMedia` addon.
 
 2. Place your audio files (`.mp3` or `.ogg`) anywhere inside the
    `SharedMedia_MyMedia/lustaudio` subfolder:
+
    ```
    SharedMedia_MyMedia\lustaudio\MySound.mp3
    ```
 
 3. Add a register line to `MyMedia.lua` for each audio file. You
    must register to the `lustaudio` type (not `sound`):
+
    ```lua
    LSM:Register("lustaudio", "My Sound Name",
        [[Interface\AddOns\SharedMedia_MyMedia\lustaudio\MySound.mp3]])
