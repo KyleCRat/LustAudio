@@ -1,11 +1,16 @@
 ## How It Works
 
 LustAudio plays a sound when a bloodlust effect is activated. It detects lust
-with Blizzard's native WoW 12.1 aura-sound support. It watches for the actual
-Bloodlust, Heroism, Time Warp, Ancient Hysteria, Netherwinds, Primal Rage, and
-Fury of the Aspects buffs to be added to your character. It does not watch the
-long-lived sated or exhaustion debuffs, so zoning with an existing lockout does
-not trigger the audio.
+only on the player and treats all supported Bloodlust-class buffs as one state.
+This includes Bloodlust, Heroism, Time Warp, Hunter and Evoker variants, and
+drums. Simultaneous lust casts therefore start only one audio track.
+
+When WoW exposes the actual buff, LustAudio detects it directly. During
+restricted encounters where WoW hides that buff from addons, LustAudio uses the
+new lockout on the player as evidence that the same lust effect was gained. An
+existing Sated, Exhaustion, or equivalent lockout never triggers playback by
+itself. Current state is initialized silently after login, reload, and zone
+transitions, and an active LustAudio track stops when a loading screen begins.
 
 Configure the sound and audio channel via `/la` or the addon settings panel.
 
