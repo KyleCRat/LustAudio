@@ -310,6 +310,8 @@ function addon:CancelWorldReadyTimer()
 end
 
 function addon:ScheduleWorldReady()
+    self.isWorldReady = false
+    self:CancelAuraScan()
     self:CancelWorldReadyTimer()
     self.worldReadyTimer = C_Timer.NewTimer(WORLD_SETTLE_DELAY, function()
         self.worldReadyTimer = nil
@@ -325,9 +327,9 @@ function addon:OnDetectionEvent(event)
         self:CancelWorldReadyTimer()
         self:StopSelectedSound()
     elseif event == "PLAYER_ENTERING_WORLD" then
-        self.isWorldReady = false
-        self:CancelAuraScan()
         self:StopSelectedSound()
+        self:ScheduleWorldReady()
+    elseif event == "LOADING_SCREEN_DISABLED" then
         self:ScheduleWorldReady()
     elseif event == "UNIT_AURA" then
         self:QueueAuraScan()
@@ -343,6 +345,7 @@ function addon:OnEnable()
     self.isWorldReady = false
 
     eventFrame:RegisterEvent("LOADING_SCREEN_ENABLED")
+    eventFrame:RegisterEvent("LOADING_SCREEN_DISABLED")
     eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
     eventFrame:RegisterUnitEvent("UNIT_AURA", "player")
 

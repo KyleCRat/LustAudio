@@ -2,7 +2,7 @@
 ## Title: LustAudio
 ## Notes: Plays audio when a bloodlust buff is applied
 ## Author: Yvairel
-## Version: 12.1.0-10
+## Version: 12.1.0-11
 ## SavedVariables: LustAudioDB
 ## OptionalDeps: Ace3, LibSharedMedia-3.0
 ## X-Embeds: Ace3, LibSharedMedia-3.0
